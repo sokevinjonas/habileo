@@ -22,7 +22,10 @@ def try_on():
     except Exception as e:
         return jsonify({"error": f"Upload Cloudinary échoué: {e}"}), 502
 
-    result = generate_tryon(user_url, cloth_url)
+    zone_map = {"haut": "upper_body", "bas": "lower_body", "tout": "dresses"}
+    zone = zone_map.get(request.form.get("zone", "haut"), "upper_body")
+
+    result = generate_tryon(user_url, cloth_url, zone)
     status = 200 if "image" in result else 502
     return jsonify(result), status
 
