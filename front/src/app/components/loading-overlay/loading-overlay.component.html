@@ -1,0 +1,18 @@
+<div class="overlay">
+  <!-- Glow orb -->
+  <div class="orb-container">
+    <div class="orb-outer animate-pulse-glow"></div>
+    <div class="orb-inner animate-float"></div>
+    <div class="orb-scan">
+      <div class="scan-line animate-scan"></div>
+    </div>
+  </div>
+
+  <p class="loading-message animate-fade-in">{{ currentMessage }}</p>
+  <p class="loading-hint">Cela peut prendre 10 a 30 secondes</p>
+
+  <!-- Progress bar -->
+  <div class="progress-track">
+    <div class="progress-fill" [style.width.%]="progress"></div>
+  </div>
+</div>

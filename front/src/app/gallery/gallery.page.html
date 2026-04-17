@@ -1,0 +1,34 @@
+<ion-content [fullscreen]="true" [scrollY]="true">
+  <div class="page-container">
+
+    <!-- Header -->
+    <div class="gallery-header animate-fade-up">
+      <div>
+        <h1 class="page-title">Ma Galerie</h1>
+        <p class="text-muted" style="font-size: 14px;">{{ savedLooks.length }} looks sauvegardes</p>
+      </div>
+      <a routerLink="/tabs/try-on" class="add-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Grid -->
+    <div class="gallery-grid">
+      @for (look of savedLooks; track look.id; let i = $index) {
+        <a routerLink="/tabs/result" class="gallery-card card-elevated animate-fade-up" [style.animation-delay]="i * 0.05 + 's'" style="padding: 0; overflow: hidden; text-decoration: none;">
+          <div class="gallery-img-wrap">
+            <img [src]="look.image" [alt]="look.label" loading="lazy" />
+          </div>
+          <div class="gallery-card-text">
+            <p class="gallery-card-label">{{ look.label }}</p>
+            <p class="gallery-card-date text-muted">{{ look.date }}</p>
+          </div>
+        </a>
+      }
+    </div>
+
+    <div class="bottom-spacer"></div>
+  </div>
+</ion-content>

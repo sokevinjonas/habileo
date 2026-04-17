@@ -1,2 +1,101 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+// Habileo Theme — Violet/Doré
+// Palette inspirée du mockup React (oklch → hex approximations)
+
+:root {
+  // Primary — Deep Purple
+  --ion-color-primary: #4b0082;
+  --ion-color-primary-rgb: 75, 0, 130;
+  --ion-color-primary-contrast: #f5f0ff;
+  --ion-color-primary-contrast-rgb: 245, 240, 255;
+  --ion-color-primary-shade: #3d006b;
+  --ion-color-primary-tint: #5e1a94;
+
+  // Secondary — Light Beige/Gray
+  --ion-color-secondary: #f0ede8;
+  --ion-color-secondary-rgb: 240, 237, 232;
+  --ion-color-secondary-contrast: #3d2e5e;
+  --ion-color-secondary-contrast-rgb: 61, 46, 94;
+  --ion-color-secondary-shade: #d3d0cc;
+  --ion-color-secondary-tint: #f2efea;
+
+  // Tertiary — Golden/Accent
+  --ion-color-tertiary: #c8a03e;
+  --ion-color-tertiary-rgb: 200, 160, 62;
+  --ion-color-tertiary-contrast: #2e2008;
+  --ion-color-tertiary-contrast-rgb: 46, 32, 8;
+  --ion-color-tertiary-shade: #b08d37;
+  --ion-color-tertiary-tint: #ceaa51;
+
+  // Success
+  --ion-color-success: #2dd36f;
+  --ion-color-success-rgb: 45, 211, 111;
+  --ion-color-success-contrast: #000000;
+  --ion-color-success-contrast-rgb: 0, 0, 0;
+  --ion-color-success-shade: #28ba62;
+  --ion-color-success-tint: #42d77d;
+
+  // Warning
+  --ion-color-warning: #ffc409;
+  --ion-color-warning-rgb: 255, 196, 9;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #e0ac08;
+  --ion-color-warning-tint: #ffca22;
+
+  // Danger / Destructive
+  --ion-color-danger: #d93025;
+  --ion-color-danger-rgb: 217, 48, 37;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #bf2a21;
+  --ion-color-danger-tint: #dd453b;
+
+  // Medium
+  --ion-color-medium: #7a6e9a;
+  --ion-color-medium-rgb: 122, 110, 154;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #6b6188;
+  --ion-color-medium-tint: #877da4;
+
+  // Light
+  --ion-color-light: #f8f7f5;
+  --ion-color-light-rgb: 248, 247, 245;
+  --ion-color-light-contrast: #1a1030;
+  --ion-color-light-contrast-rgb: 26, 16, 48;
+  --ion-color-light-shade: #dad9d7;
+  --ion-color-light-tint: #f9f8f6;
+
+  // App-level custom vars
+  --habileo-bg: #faf9f7;
+  --habileo-fg: #1a1030;
+  --habileo-card: #ffffff;
+  --habileo-muted: #f3f1ee;
+  --habileo-muted-fg: #7a6e9a;
+  --habileo-border: #e8e5e0;
+  --habileo-accent: #c8a03e;
+  --habileo-accent-fg: #2e2008;
+  --habileo-surface: #f5f3f0;
+  --habileo-gold: #c8a03e;
+
+  // Backgrounds
+  --ion-background-color: var(--habileo-bg);
+  --ion-background-color-rgb: 250, 249, 247;
+  --ion-text-color: var(--habileo-fg);
+  --ion-text-color-rgb: 26, 16, 48;
+
+  --ion-card-background: var(--habileo-card);
+
+  // Tab bar
+  --ion-tab-bar-background: rgba(255, 255, 255, 0.85);
+  --ion-tab-bar-border-color: var(--habileo-border);
+  --ion-tab-bar-color: var(--habileo-muted-fg);
+  --ion-tab-bar-color-selected: var(--ion-color-primary);
+
+  // Toolbar
+  --ion-toolbar-background: transparent;
+  --ion-toolbar-color: var(--habileo-fg);
+
+  // Font
+  --ion-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

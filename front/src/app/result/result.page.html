@@ -1,0 +1,98 @@
+<ion-content [fullscreen]="true" [scrollY]="true">
+  <div class="page-container">
+
+    <!-- Header -->
+    <div class="page-header animate-fade-up">
+      <h1 class="page-title">Votre Nouveau Look</h1>
+      <p class="text-muted" style="margin-top: 4px; font-size: 14px;">Glissez pour comparer avant et apres</p>
+    </div>
+
+    <!-- Before/After Slider -->
+    <div
+      class="slider-container animate-scale-in"
+      (mousemove)="onSliderMove($event)"
+      (touchmove)="onSliderMove($event)"
+    >
+      <!-- After (full) -->
+      <img [src]="afterImage" alt="Apres" class="slider-img" />
+
+      <!-- Before (clipped) -->
+      <div class="slider-before" [style.width.%]="sliderPos">
+        <img [src]="beforeImage" alt="Avant" class="slider-img" [style.width]="(100 / (sliderPos / 100)) + '%'" />
+      </div>
+
+      <!-- Divider -->
+      <div class="slider-divider" [style.left.%]="sliderPos">
+        <div class="slider-handle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3l-5 9 5 9M16 3l5 9-5 9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Labels -->
+      <span class="slider-label slider-label-before">Avant</span>
+      <span class="slider-label slider-label-after">Apres</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-grid animate-fade-up" style="animation-delay: 0.2s">
+      <button class="btn-primary-gradient action-btn" (click)="premiumAction(download.bind(this))">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        Telecharger <span *ngIf="!isPremium">&#128274;</span>
+      </button>
+      <button class="btn-outline action-btn" (click)="premiumAction(share.bind(this))">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Partager <span *ngIf="!isPremium">&#128274;</span>
+      </button>
+    </div>
+
+    <div class="actions-grid animate-fade-up" style="animation-delay: 0.3s; margin-top: 12px;">
+      <button
+        class="action-btn"
+        [class]="saved ? 'btn-saved action-btn' : 'btn-secondary action-btn'"
+        (click)="premiumAction(toggleSave.bind(this))"
+      >
+        {{ saved ? '&#10003; Sauvegarde' : 'Sauvegarder' }}
+        <span *ngIf="!isPremium && !saved">&#128274;</span>
+      </button>
+      <a routerLink="/tabs/try-on" class="btn-cta action-btn" style="font-size: 14px; padding: 12px 16px;">
+        Essayer une autre
+      </a>
+    </div>
+
+    <div class="bottom-spacer"></div>
+  </div>
+
+  <!-- Premium Modal -->
+  <ion-modal [isOpen]="showPremium" (didDismiss)="showPremium = false" [breakpoints]="[0, 1]" [initialBreakpoint]="1" class="premium-modal">
+    <ng-template>
+      <div class="premium-content">
+        <h2 class="premium-title">Passez au Premium</h2>
+        <p class="text-muted" style="text-align: center;">Debloquez le telechargement, le partage et la sauvegarde de vos looks dans la galerie.</p>
+
+        <div class="premium-price-box">
+          <p class="premium-price">1 000 FCFA</p>
+          <p class="text-muted" style="font-size: 14px;">Paiement unique — acces a vie</p>
+        </div>
+
+        <ul class="premium-features">
+          <li>Telechargement illimite de vos looks</li>
+          <li>Partage sur les reseaux sociaux</li>
+          <li>Sauvegarde dans votre galerie personnelle</li>
+          <li>Acces a vie, sans abonnement</li>
+        </ul>
+
+        <button class="btn-cta" (click)="activatePremium()">
+          Activer le Premium — 1 000 FCFA
+        </button>
+        <button class="premium-later" (click)="showPremium = false">Plus tard</button>
+      </div>
+    </ng-template>
+  </ion-modal>
+</ion-content>

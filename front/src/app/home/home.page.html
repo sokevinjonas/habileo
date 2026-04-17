@@ -1,0 +1,76 @@
+<ion-content [fullscreen]="true" [scrollY]="true">
+
+  <!-- Hero -->
+  <section class="gradient-hero hero-section">
+    <img src="assets/hero-bg.jpg" alt="" class="hero-bg-img" />
+    <div class="hero-content">
+      <h1 class="hero-title animate-fade-up">Habileo</h1>
+      <p class="hero-subtitle animate-fade-up" style="animation-delay: 0.1s">
+        Essayez votre tenue avant qu'elle n'existe
+      </p>
+
+      <!-- Before/After mini preview -->
+      <div class="hero-preview animate-fade-up" style="animation-delay: 0.2s">
+        <div class="preview-card preview-before">
+          <img src="assets/fashion-african-1.jpg" alt="Avant" />
+          <span class="preview-label">Avant</span>
+        </div>
+        <div class="preview-arrow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="preview-card preview-after">
+          <img src="assets/fashion-african-3.jpg" alt="Apres" />
+          <span class="preview-label preview-label-accent">Apres</span>
+        </div>
+      </div>
+
+      <a routerLink="/tabs/try-on" class="btn-cta hero-cta animate-fade-up" style="animation-delay: 0.3s">
+        Commencer l'essayage
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section-padding">
+    <h2 class="section-title">Comment ca marche</h2>
+    <div class="steps-grid">
+      @for (step of steps; track step.num; let i = $index) {
+        <div class="card-elevated step-card animate-fade-up" [style.animation-delay]="i * 0.1 + 's'">
+          <div class="step-number">{{ step.num }}</div>
+          <div>
+            <p class="step-title">{{ step.title }}</p>
+            <p class="step-desc text-muted">{{ step.desc }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Transformations carousel -->
+  <section class="section-padding-y">
+    <h2 class="section-title section-padding-x">Exemples de Transformations</h2>
+    <p class="text-muted section-padding-x" style="margin-top: 4px; font-size: 14px;">La mode africaine rencontre l'IA</p>
+    <div class="carousel scrollbar-hide">
+      @for (card of transformations; track card.label; let i = $index) {
+        <div class="carousel-card animate-fade-up" [style.animation-delay]="i * 0.1 + 's'">
+          <div class="card-elevated" style="padding: 0; overflow: hidden;">
+            <div class="carousel-img-wrap">
+              <img [src]="card.image" [alt]="card.label" loading="lazy" />
+            </div>
+            <div class="carousel-text">
+              <p class="carousel-label">{{ card.label }}</p>
+              <p class="text-muted" style="font-size: 12px;">{{ card.style }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <div class="bottom-spacer"></div>
+</ion-content>
