@@ -1,28 +1,66 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IonContent } from '@ionic/angular/standalone';
+import { IonContent, IonRefresher, IonRefresherContent, IonSpinner } from '@ionic/angular/standalone';
+import { GalleryService, GalleryItem } from '../services/gallery.service';
 
-interface SavedLook {
-  id: number;
-  image: string;
-  label: string;
-  date: string;
-}
+type LoadState = 'idle' | 'loading' | 'ready' | 'error' | 'offline' | 'empty';
 
 @Component({
   selector: 'app-gallery',
   templateUrl: './gallery.page.html',
   styleUrls: ['./gallery.page.scss'],
-  imports: [CommonModule, IonContent, RouterLink],
+  imports: [IonContent, IonRefresher, IonRefresherContent, IonSpinner, RouterLink],
 })
-export class GalleryPage {
-  savedLooks: SavedLook[] = [
-    { id: 1, image: 'assets/fashion-african-1.jpg', label: 'Elegance Ankara', date: '14 Avr' },
-    { id: 2, image: 'assets/fashion-african-2.jpg', label: 'Boubou Royal', date: '13 Avr' },
-    { id: 3, image: 'assets/fashion-african-3.jpg', label: 'Kaba Dore', date: '12 Avr' },
-    { id: 4, image: 'assets/fashion-african-1.jpg', label: 'Wax Chic', date: '11 Avr' },
-    { id: 5, image: 'assets/fashion-african-3.jpg', label: 'Soiree Doree', date: '10 Avr' },
-    { id: 6, image: 'assets/fashion-african-2.jpg', label: 'Agbada Moderne', date: '9 Avr' },
-  ];
+export class GalleryPage implements OnInit {
+  items: GalleryItem[] = [];
+  state: LoadState = 'idle';
+  errorMessage = '';
+
+  constructor(private galleryService: GalleryService) {}
+
+  async ngOnInit(): Promise<void> {
+    await this.load();
+  }
+
+  async ionViewWillEnter(): Promise<void> {
+    // Refresh quand on revient sur la page
+    if (this.state !== 'loading') {
+      await this.load();
+    }
+  }
+
+  async load(): Promise<void> {
+    if (!navigator.onLine) {
+      this.state = 'offline';
+      return;
+    }
+
+    this.state = 'loading';
+    this.errorMessage = '';
+
+    try {
+      this.items = await this.galleryService.fetchGallery();
+      this.state = this.items.length === 0 ? 'empty' : 'ready';
+    } catch (e: any) {
+      this.errorMessage = e?.message || 'Erreur inconnue';
+      this.state = 'error';
+    }
+  }
+
+  async handleRefresh(event: any): Promise<void> {
+    await this.load();
+    event.target.complete();
+  }
+
+  formatDate(iso: string): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const months = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aout', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${d.getDate()} ${months[d.getMonth()]}`;
+  }
+
+  truncateLabel(label: string, max = 24): string {
+    if (!label) return 'Look sans nom';
+    return label.length > max ? label.slice(0, max).trim() + '...' : label;
+  }
 }

@@ -1,9 +1,12 @@
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, request, jsonify
 from app.services.replicate_service import generate_tryon
-from app.services.storage_service import upload_image
+from app.services.storage_service import upload_image, save_tryon_result
 from app.services.content_validator import validate_user_content, validate_garment_content
 from app.utils.helpers import validate_user_photo, validate_garment_photo
+
+log = logging.getLogger(__name__)
 
 tryon_bp = Blueprint("tryon", __name__)
 
@@ -12,6 +15,7 @@ tryon_bp = Blueprint("tryon", __name__)
 def try_on():
     user_file = request.files.get("user")
     cloth_file = request.files.get("cloth")
+    device_id = request.form.get("device_id", "").strip()
 
     # ── 1. Format validation (size, dimensions, extension) ──
     ok, err = validate_user_photo(user_file)
@@ -30,7 +34,7 @@ def try_on():
     zone_map = {"haut": "upper_body", "bas": "lower_body", "tout": "dresses"}
     zone = zone_map[zone_raw]
 
-    # ── 3. Upload to Cloudinary ──
+    # ── 3. Upload to Cloudinary (temp folder) ──
     try:
         user_url = upload_image(user_file)
         cloth_url = upload_image(cloth_file)
@@ -58,6 +62,16 @@ def try_on():
     garment_desc = request.form.get("garment_desc", desc_map.get(zone, "garment"))
 
     result = generate_tryon(user_url, cloth_url, zone, garment_desc)
+
+    # ── 6. Save result to user's gallery folder (if device_id provided) ──
+    if "image" in result and device_id:
+        try:
+            saved = save_tryon_result(result["image"], device_id, label=garment_desc)
+            result["image"] = saved["url"]
+            result["id"] = saved["id"]
+        except Exception as e:
+            log.warning("Failed to save result to user folder: %s", e)
+
     status = 200 if "image" in result else 502
     return jsonify(result), status
 

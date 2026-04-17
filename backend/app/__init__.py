@@ -9,6 +9,8 @@ def create_app():
     CORS(app)
 
     from app.routes.tryon import tryon_bp
+    from app.routes.gallery import gallery_bp
     app.register_blueprint(tryon_bp, url_prefix="/api")
+    app.register_blueprint(gallery_bp, url_prefix="/api")
 
     return app

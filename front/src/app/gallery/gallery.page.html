@@ -1,33 +1,97 @@
 <ion-content [fullscreen]="true" [scrollY]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
   <div class="page-container">
 
     <!-- Header -->
     <div class="gallery-header animate-fade-up">
       <div>
         <h1 class="page-title">Ma Galerie</h1>
-        <p class="text-muted" style="font-size: 14px;">{{ savedLooks.length }} looks sauvegardes</p>
+        @if (state === 'ready') {
+          <p class="text-muted" style="font-size: 14px;">{{ items.length }} look{{ items.length > 1 ? 's' : '' }} sauvegarde{{ items.length > 1 ? 's' : '' }}</p>
+        } @else if (state === 'loading') {
+          <p class="text-muted" style="font-size: 14px;">Chargement...</p>
+        } @else if (state === 'empty') {
+          <p class="text-muted" style="font-size: 14px;">Aucun look pour le moment</p>
+        }
       </div>
-      <a routerLink="/tabs/try-on" class="add-btn">
+      <a routerLink="/tabs/try-on" class="add-btn" aria-label="Nouveau look">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
       </a>
     </div>
 
-    <!-- Grid -->
-    <div class="gallery-grid">
-      @for (look of savedLooks; track look.id; let i = $index) {
-        <a routerLink="/tabs/result" class="gallery-card card-elevated animate-fade-up" [style.animation-delay]="i * 0.05 + 's'" style="padding: 0; overflow: hidden; text-decoration: none;">
-          <div class="gallery-img-wrap">
-            <img [src]="look.image" [alt]="look.label" loading="lazy" />
-          </div>
-          <div class="gallery-card-text">
-            <p class="gallery-card-label">{{ look.label }}</p>
-            <p class="gallery-card-date text-muted">{{ look.date }}</p>
-          </div>
-        </a>
+    @switch (state) {
+
+      @case ('loading') {
+        <div class="state-box">
+          <ion-spinner name="crescent" color="primary"></ion-spinner>
+          <p class="state-msg">Chargement de votre galerie...</p>
+        </div>
       }
-    </div>
+
+      @case ('offline') {
+        <div class="state-box">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="state-icon">
+            <line x1="1" y1="1" x2="23" y2="23"/>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+          </svg>
+          <p class="state-title">Connexion requise</p>
+          <p class="state-msg">Votre galerie est stockee dans le cloud. Connectez-vous a internet pour la visualiser.</p>
+          <button class="btn-retry" (click)="load()">Reessayer</button>
+        </div>
+      }
+
+      @case ('error') {
+        <div class="state-box">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="state-icon state-icon-error">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p class="state-title">Erreur de chargement</p>
+          <p class="state-msg">{{ errorMessage }}</p>
+          <button class="btn-retry" (click)="load()">Reessayer</button>
+        </div>
+      }
+
+      @case ('empty') {
+        <div class="state-box">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="state-icon">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <p class="state-title">Votre galerie est vide</p>
+          <p class="state-msg">Generez votre premier look pour commencer votre collection.</p>
+          <a routerLink="/tabs/try-on" class="btn-retry btn-primary-link">Creer un look</a>
+        </div>
+      }
+
+      @case ('ready') {
+        <div class="gallery-grid">
+          @for (look of items; track look.id; let i = $index) {
+            <a [routerLink]="['/tabs/result']" [queryParams]="{ after: look.url }" class="gallery-card card-elevated animate-fade-up" [style.animation-delay]="i * 0.05 + 's'" style="padding: 0; overflow: hidden; text-decoration: none;">
+              <div class="gallery-img-wrap">
+                <img [src]="look.url" [alt]="look.label || 'Look'" loading="lazy" />
+              </div>
+              <div class="gallery-card-text">
+                <p class="gallery-card-label">{{ truncateLabel(look.label) }}</p>
+                <p class="gallery-card-date text-muted">{{ formatDate(look.date) }}</p>
+              </div>
+            </a>
+          }
+        </div>
+      }
+
+    }
 
     <div class="bottom-spacer"></div>
   </div>

@@ -48,6 +48,7 @@
 .gallery-img-wrap {
   aspect-ratio: 3/4;
   overflow: hidden;
+  background: var(--habileo-muted);
 
   img {
     width: 100%;
@@ -75,6 +76,67 @@
 .gallery-card-date {
   font-size: 11px;
   margin: 2px 0 0;
+}
+
+/* ---- State boxes (loading, empty, error, offline) ---- */
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px 24px;
+  gap: 12px;
+
+  ion-spinner {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.state-icon {
+  color: var(--habileo-muted-fg);
+  margin-bottom: 4px;
+}
+
+.state-icon-error {
+  color: var(--ion-color-danger);
+}
+
+.state-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--habileo-fg);
+  margin: 0;
+}
+
+.state-msg {
+  font-size: 14px;
+  color: var(--habileo-muted-fg);
+  max-width: 280px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.btn-retry {
+  margin-top: 16px;
+  padding: 12px 28px;
+  border-radius: 14px;
+  background: var(--ion-color-primary);
+  color: #f5f0ff;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+  text-decoration: none;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.btn-primary-link {
+  display: inline-block;
 }
 
 .bottom-spacer {
