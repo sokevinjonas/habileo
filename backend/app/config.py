@@ -13,7 +13,7 @@ class Config:
     REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
     REPLICATE_MODEL_VERSION = os.getenv("REPLICATE_MODEL_VERSION")
     REPLICATE_POLL_INTERVAL = float(os.getenv("REPLICATE_POLL_INTERVAL", "2"))
-    REPLICATE_TIMEOUT = int(os.getenv("REPLICATE_TIMEOUT", "120"))
+    REPLICATE_TIMEOUT = int(os.getenv("REPLICATE_TIMEOUT", "180"))
 
     # Cloudinary
     CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")

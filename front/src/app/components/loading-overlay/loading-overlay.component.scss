@@ -53,6 +53,15 @@
 }
 
 /* ---- Text ---- */
+.loading-step {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--habileo-accent);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .loading-message {
   font-size: 18px;
   font-weight: 600;
