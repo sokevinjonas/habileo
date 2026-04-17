@@ -10,11 +10,14 @@ export interface TryOnResult {
 @Injectable({ providedIn: 'root' })
 export class TryOnService {
 
-  async generate(userFile: File, clothFile: File, zone: string): Promise<TryOnResult> {
+  async generate(userFile: File, clothFile: File, zone: string, garmentDesc = ''): Promise<TryOnResult> {
     const formData = new FormData();
     formData.append('user', userFile);
     formData.append('cloth', clothFile);
     formData.append('zone', zone);
+    if (garmentDesc) {
+      formData.append('garment_desc', garmentDesc);
+    }
 
     const response = await fetch(`${environment.apiUrl}/api/try-on`, {
       method: 'POST',

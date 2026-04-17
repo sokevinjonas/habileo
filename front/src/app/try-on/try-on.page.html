@@ -69,7 +69,7 @@
             </svg>
           </div>
           <p class="upload-title">Image du Vetement</p>
-          <p class="upload-hint text-muted">N'importe quelle image de tenue — photo ou capture d'ecran</p>
+          <p class="upload-hint text-muted">Privilegiez une photo du vetement seul sur fond neutre pour un meilleur resultat</p>
         }
       </div>
     </div>
@@ -95,6 +95,26 @@
     @if (errorField === 'zone') {
       <p class="error-text animate-fade-up">{{ errorMessage }}</p>
     }
+
+    <!-- Garment description -->
+    <div class="zone-select animate-fade-up" style="animation-delay: 0.28s">
+      <label class="zone-label">Description du vetement (optionnel)</label>
+      <input
+        type="text"
+        [(ngModel)]="garmentDesc"
+        placeholder="Ex: chemise col mao grise a boutons"
+        class="desc-input"
+      />
+      <p class="text-muted" style="font-size: 11px; margin-top: 4px;">Une description precise ameliore la qualite du resultat</p>
+    </div>
+
+    <!-- Tip -->
+    <div class="tip-box animate-fade-up" style="animation-delay: 0.3s">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <p>Pour un meilleur resultat, utilisez une image du vetement <strong>seul</strong> (sur fond blanc ou neutre). Les photos de mannequins portant le vetement peuvent deformer le resultat.</p>
+    </div>
 
     <!-- Generate Button -->
     <div class="generate-wrap animate-fade-up" style="animation-delay: 0.3s">

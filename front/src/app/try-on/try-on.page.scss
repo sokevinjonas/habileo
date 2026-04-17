@@ -122,6 +122,50 @@
   margin-top: 32px;
 }
 
+.desc-input {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--habileo-border);
+  background: var(--habileo-card);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--habileo-fg);
+  outline: none;
+  transition: border-color 0.3s;
+
+  &:focus {
+    border-color: var(--ion-color-primary);
+  }
+
+  &::placeholder {
+    color: var(--habileo-muted-fg);
+  }
+}
+
+.tip-box {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(200, 160, 62, 0.08);
+  border-left: 3px solid var(--habileo-accent);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--habileo-accent);
+  }
+
+  p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--habileo-muted-fg);
+    line-height: 1.5;
+  }
+}
+
 .error-text {
   margin: 8px 0 0;
   padding: 10px 14px;

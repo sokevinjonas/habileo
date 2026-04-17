@@ -21,6 +21,7 @@ export class TryOnPage {
   userPhoto: string | null = null;
   clothingPhoto: string | null = null;
   clothingZone = '';
+  garmentDesc = '';
   loading = false;
   errorMessage = '';
   errorField = '';
@@ -91,7 +92,7 @@ export class TryOnPage {
     this.loading = true;
 
     try {
-      const result = await this.tryOnService.generate(this.userFile, this.clothingFile, this.clothingZone);
+      const result = await this.tryOnService.generate(this.userFile, this.clothingFile, this.clothingZone, this.garmentDesc);
       this.loading = false;
 
       if (result.error) {
