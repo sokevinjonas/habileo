@@ -1,6 +1,6 @@
 # 🐳 Docker — Guide Habileo
 
-Ce document explique la configuration Docker du projet, comment elle fonctionne, et comment lancer l'application en **développement** ou en **production**.
+Ce document explique la configuration Docker du projet, comment elle fonctionne, et comment lancer l'application en **developpement** ou en **production**.
 
 ---
 
@@ -8,12 +8,14 @@ Ce document explique la configuration Docker du projet, comment elle fonctionne,
 
 Le projet contient deux services :
 
-| Service     | Dossier     | Stack                         | Port prod | Port dev |
-| ----------- | ----------- | ----------------------------- | --------- | -------- |
-| `backend`   | `./backend` | Python 3.11 + Flask + Gunicorn| 5000      | 5000     |
-| `frontend`  | `./front`   | Ionic + Angular 20 + nginx    | 8080      | 8100     |
+| Service    | Dossier     | Stack                           | Port prod | Port dev |
+| ---------- | ----------- | ------------------------------- | --------- | -------- |
+| `backend`  | `./backend` | Python 3.11 + Flask + Gunicorn  | 5000      | 5000     |
+| `frontend` | `./front`   | Ionic + Angular 20 + nginx      | 8080      | 8100     |
 
-Ils communiquent via un **réseau Docker dédié** `habileo`. Le frontend appelle le backend via `http://backend:5000` à l'intérieur du réseau, ou `http://localhost:5000` depuis l'hôte.
+Les deux services communiquent via un **reseau Docker dedie** `habileo`. Le frontend appelle le backend via `http://backend:5000` a l'interieur du reseau.
+
+En production, nginx (dans le conteneur frontend) fait office de **reverse proxy** : il sert les fichiers statiques ET forwarde `/api/*` vers le backend. Du coup, le navigateur ne parle qu'a un seul endpoint (`http://localhost:8080`) et il n'y a pas de probleme CORS.
 
 ---
 
@@ -21,18 +23,18 @@ Ils communiquent via un **réseau Docker dédié** `habileo`. Le frontend appell
 
 ```text
 habileo/
-├── docker-compose.yml           # orchestration PROD (back + front + network)
-├── docker-compose.dev.yml       # orchestration DEV (hot-reload, volumes)
+├── docker-compose.yml           # Orchestration PROD (back + front + network)
+├── docker-compose.dev.yml       # Orchestration DEV (hot-reload, volumes)
 │
 ├── backend/
-│   ├── Dockerfile               # image Python 3.11-slim + Gunicorn
-│   ├── .dockerignore            # exclusions build (venv, .env, .git...)
-│   └── .env.example             # variables à remplir dans .env
+│   ├── Dockerfile               # Python 3.11-slim + Gunicorn
+│   ├── .dockerignore
+│   └── .env.example
 │
 └── front/
-    ├── Dockerfile               # multi-stage : build Node → serveur nginx
-    ├── Dockerfile.dev           # dev : ng serve avec hot-reload
-    ├── nginx.conf               # config nginx (SPA fallback, gzip, cache)
+    ├── Dockerfile               # Multi-stage : Node build → nginx
+    ├── Dockerfile.dev           # Hot-reload ng serve
+    ├── nginx.conf               # Reverse proxy /api + SPA fallback
     └── .dockerignore
 ```
 
@@ -40,20 +42,27 @@ habileo/
 
 ## 🔧 Backend — `backend/Dockerfile`
 
-Image basée sur `python:3.11-slim`.
+Image basee sur `python:3.11-slim`.
 
 **Ce qu'elle fait :**
 
-1. Installe les dépendances système (`build-essential`, `curl` pour le healthcheck).
-2. Installe les deps Python depuis `requirements.txt` + `gunicorn`.
-3. Copie le code applicatif.
-4. Crée un user non-root `appuser` (sécurité).
-5. Expose le port **5000**.
-6. Lance **Gunicorn** en prod (2 workers, timeout 180s) sur `run:app`.
-7. Healthcheck : `GET /api/health` toutes les 30s.
+1. Installe les deps systeme (`build-essential`, `curl` pour le healthcheck)
+2. Installe les deps Python depuis `requirements.txt` + `gunicorn`
+3. Copie le code applicatif
+4. Cree un user non-root `appuser` (securite)
+5. Expose le port **5000**
+6. Lance **Gunicorn** en prod (2 workers, timeout 180s) sur `run:app`
+7. Healthcheck sur `GET /api/health` toutes les 30s
 
 **Pourquoi Gunicorn et pas `flask run` ?**
-Flask dev server est monothread et non sécurisé. Gunicorn est un serveur WSGI solide, multi-workers, adapté à la prod.
+Flask dev server est monothread et non securise. Gunicorn est un serveur WSGI solide, multi-workers, adapte a la prod.
+
+**Dependances Python :**
+
+- Flask 3, flask-cors, requests, python-dotenv
+- cloudinary (upload images)
+- Pillow (validation dimensions)
+- gunicorn (ajoute au build)
 
 ---
 
@@ -63,32 +72,44 @@ Flask dev server est monothread et non sécurisé. Gunicorn est un serveur WSGI 
 
 - Image `node:20-alpine`
 - `npm ci` (install reproductible depuis `package-lock.json`)
-- `npm run build -- --configuration=production` → génère `/app/www`
+- `npm run build -- --configuration=production` → genere `/app/www`
 
 **Stage 2 — runtime :**
 
-- Image `nginx:1.27-alpine`
+- Image `nginx:1.27-alpine` + `curl` (pour healthcheck)
 - Copie de `/app/www` (stage 1) vers `/usr/share/nginx/html`
-- Applique `nginx.conf` : SPA fallback, gzip, cache assets long
-- Expose le port **80** (mappé sur 8080 via compose)
+- Applique `nginx.conf` : proxy `/api/*` vers `http://backend:5000`, SPA fallback, gzip, cache assets
+- Expose le port **80** (mappe sur 8080 via compose)
 
 **Pourquoi multi-stage ?**
-L'image finale ne contient **ni Node ni npm ni node_modules** — uniquement les fichiers statiques + nginx. Résultat : image ~40 Mo au lieu de ~1 Go.
+L'image finale ne contient **ni Node ni npm ni node_modules** — uniquement les fichiers statiques + nginx. Resultat : image ~40 Mo au lieu de ~1 Go.
 
-### `nginx.conf` — points clés
+### `nginx.conf` — points cles
 
-- **SPA fallback** : toutes les URLs inconnues renvoient `index.html` (nécessaire pour le router Angular).
-- **Gzip** activé sur JS/CSS/JSON/SVG.
-- **Cache immuable** 1 an sur les assets hashés (JS/CSS/fonts/images).
+```nginx
+location /api/ {
+    proxy_pass http://backend:5000/api/;
+    proxy_read_timeout 180s;
+}
+
+location / {
+    try_files $uri $uri/ /index.html;   # SPA fallback
+}
+```
+
+- **Reverse proxy** : `/api/*` → backend (pas de CORS, meme origine)
+- **SPA fallback** : toutes les URLs inconnues renvoient `index.html` (Angular router)
+- **Gzip** actif sur JS/CSS/JSON/SVG
+- **Cache immuable** 1 an sur les assets hashes
 
 ---
 
-## 🚧 Frontend — `Dockerfile.dev` (développement)
+## 🚧 Frontend — `Dockerfile.dev` (developpement)
 
 - Image `node:20-alpine`
-- Lance `ng serve --host 0.0.0.0 --port 8100`
-- Avec le montage de volume `./front:/app` (défini dans `docker-compose.dev.yml`), les modifications locales déclenchent un **hot-reload**.
-- Le truc `- /app/node_modules` dans les volumes protège le `node_modules` du conteneur d'être écrasé par celui de l'hôte.
+- Lance `ng serve --host 0.0.0.0 --port 8100 --disable-host-check`
+- Avec le montage de volume `./front:/app`, les modifications locales declenchent un **hot-reload**
+- Le volume anonyme `- /app/node_modules` empeche le `node_modules` du conteneur d'etre ecrase par celui de l'hote
 
 ---
 
@@ -96,40 +117,48 @@ L'image finale ne contient **ni Node ni npm ni node_modules** — uniquement les
 
 ```yaml
 services:
-  backend:   # port 5000:5000, env depuis backend/.env
-  frontend:  # port 8080:80, depends_on backend
+  backend:
+    ports: ["5000:5000"]
+    env_file: ./backend/.env
+    healthcheck: curl /api/health
+  frontend:
+    ports: ["8080:80"]
+    depends_on: [backend]
 networks:
-  habileo:   # réseau interne partagé
+  habileo:
 ```
 
-- `restart: unless-stopped` : relance auto en cas de crash.
-- `healthcheck` sur le backend : docker connaît l'état de santé.
-- Pas de volume monté : l'image est **immutable** (comportement prod).
+- `restart: unless-stopped` : relance auto en cas de crash
+- `healthcheck` sur les deux services : Docker connait l'etat de sante
+- Pas de volume monte : les images sont **immutables** (comportement prod)
+- Reseau `habileo` : les conteneurs se trouvent entre eux via leurs noms (`backend`, `frontend`)
 
-## 🧪 `docker-compose.dev.yml` (développement)
+---
 
-Différences avec la prod :
+## 🧪 `docker-compose.dev.yml` (developpement)
 
-- **Backend** : `FLASK_DEBUG=1`, lance `python run.py` (reload auto), volume `./backend:/app` monté.
-- **Frontend** : utilise `Dockerfile.dev`, port `8100`, volume `./front:/app` monté → hot-reload Angular.
+Differences avec la prod :
+
+- **Backend** : `FLASK_DEBUG=1`, lance `python run.py` (reload auto), volume `./backend:/app` monte
+- **Frontend** : utilise `Dockerfile.dev`, port **8100**, volume `./front:/app` monte → hot-reload Angular
 
 ---
 
 ## 🚀 Comment lancer
 
-### 1. Prérequis
+### 1. Prerequis
 
-- Docker ≥ 24
-- Docker Compose v2 (intégré à Docker Desktop / `docker compose` en ligne de commande)
+- Docker >= 24
+- Docker Compose v2 (integre a Docker Desktop / `docker compose` en ligne de commande)
 
 ### 2. Configuration initiale
 
 ```bash
 cd ~/Bureau/Projet-IA/habileo
 cp backend/.env.example backend/.env
-# Éditer backend/.env avec tes vraies clés :
+# Editer backend/.env avec tes vraies cles :
 #   - REPLICATE_API_TOKEN
-#   - REPLICATE_MODEL_VERSION
+#   - REPLICATE_MODEL_VERSION (hash IDM-VTON)
 #   - CLOUDINARY_URL
 ```
 
@@ -143,16 +172,16 @@ docker compose up --build
 - Frontend : <http://localhost:8080>
 - Healthcheck : <http://localhost:5000/api/health>
 
-En arrière-plan :
+En arriere-plan :
 
 ```bash
 docker compose up -d --build
 docker compose logs -f           # suivre les logs
-docker compose ps                # état des conteneurs
-docker compose down              # tout arrêter
+docker compose ps                # etat des conteneurs
+docker compose down              # tout arreter
 ```
 
-### 4. Lancer en **développement** (hot-reload)
+### 4. Lancer en **developpement** (hot-reload)
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
@@ -170,44 +199,100 @@ docker compose up frontend
 
 ---
 
+## 🚢 Publier les images sur Docker Hub
+
+Les images sont publiees sous le namespace `sokevinjonas/` :
+
+- `sokevinjonas/habileo-backend:v1.0.1` + `:latest`
+- `sokevinjonas/habileo-frontend:v1.0.1` + `:latest`
+
+**Processus de publication :**
+
+```bash
+# 1. Build
+docker compose build
+
+# 2. Tag + Push (une version + latest)
+for svc in backend frontend; do
+  docker tag habileo-$svc:latest sokevinjonas/habileo-$svc:v1.0.2
+  docker tag habileo-$svc:latest sokevinjonas/habileo-$svc:latest
+  docker push sokevinjonas/habileo-$svc:v1.0.2
+  docker push sokevinjonas/habileo-$svc:latest
+done
+```
+
+**Requiert** : `docker login` au prealable.
+
+**Verifier les tags publies :**
+
+```bash
+docker images | grep sokevinjonas
+```
+
+---
+
 ## 🧰 Commandes utiles
 
-| Action                              | Commande                                              |
-| ----------------------------------- | ----------------------------------------------------- |
-| Rebuild forcé (sans cache)          | `docker compose build --no-cache`                     |
-| Logs d'un service                   | `docker compose logs -f backend`                      |
-| Shell dans le conteneur backend     | `docker compose exec backend sh`                      |
-| Shell dans le conteneur frontend    | `docker compose exec frontend sh`                     |
-| Supprimer volumes/networks orphelins| `docker compose down -v --remove-orphans`             |
-| Voir les images                     | `docker images \| grep habileo`                       |
-| Nettoyage global Docker             | `docker system prune -a`                              |
+| Action                                 | Commande                                              |
+| -------------------------------------- | ----------------------------------------------------- |
+| Rebuild force (sans cache)             | `docker compose build --no-cache`                     |
+| Logs d'un service                      | `docker compose logs -f backend`                      |
+| Logs du frontend                       | `docker logs -f habileo-frontend`                     |
+| Shell dans le conteneur backend        | `docker compose exec backend sh`                      |
+| Shell dans le conteneur frontend       | `docker compose exec frontend sh`                     |
+| Supprimer volumes/networks orphelins   | `docker compose down -v --remove-orphans`             |
+| Voir les images                        | `docker images \| grep habileo`                       |
+| Nettoyage global Docker                | `docker system prune -a`                              |
+| Statut des healthchecks                | `docker compose ps`                                   |
+| Rebuild un seul service                | `docker compose up --build backend`                   |
 
 ---
 
-## 🔐 Sécurité & bonnes pratiques appliquées
+## 🔁 Cache vs no-cache
 
-- ✅ **User non-root** dans le conteneur backend (`appuser`)
-- ✅ **Multi-stage build** frontend → image finale minimale, pas d'outils de build embarqués
-- ✅ **`.dockerignore`** : `.env`, `.git`, `node_modules`, venv jamais copiés dans l'image
+| Cas                                       | Commande                           |
+| ----------------------------------------- | ---------------------------------- |
+| Modif code (`.py`, `.ts`, `.html`)        | `docker compose up --build`        |
+| Modif `requirements.txt` / `package.json` | `docker compose up --build`        |
+| Bug bizarre, image corrompue              | `docker compose build --no-cache`  |
+
+`--build` utilise le cache des layers inchanges (rapide). `--no-cache` rebuild tout depuis zero (lent, plusieurs minutes).
+
+---
+
+## 🔐 Securite & bonnes pratiques appliquees
+
+- ✅ **User non-root** (`appuser`) dans le conteneur backend
+- ✅ **Multi-stage build** frontend → image finale minimale
+- ✅ **`.dockerignore`** : `.env`, `.git`, `node_modules`, venv jamais copies dans l'image
 - ✅ **Healthchecks** actifs sur les deux services
-- ✅ **Réseau isolé** `habileo` : les conteneurs communiquent entre eux, pas d'exposition inutile
-- ✅ **`.env` non commité** (via `.gitignore`) — seul `.env.example` est versionné
+- ✅ **Reseau isole** `habileo` : communication via noms de service
+- ✅ **Reverse proxy nginx** : pas de CORS, pas d'URL prod en dur dans le code
+- ✅ **`.env` non commite** (via `.gitignore`) — seul `.env.example` est versionne
+- ✅ **Retry sur rate limits** Replicate (429) dans le backend
 
 ---
 
-## 🐞 Dépannage
+## 🐞 Depannage
 
 **`backend/.env` manquant** → `cp backend/.env.example backend/.env` et remplir.
 
-**Port 5000 ou 8080 déjà utilisé** → modifier le mapping dans `docker-compose.yml` (`"5001:5000"`).
+**Port 5000 ou 8080 deja utilise** → modifier le mapping dans `docker-compose.yml` (`"5001:5000"`).
 
-**Le frontend ne joint pas le backend** → depuis le navigateur, utiliser `http://localhost:5000`. Depuis le conteneur frontend, utiliser `http://backend:5000`.
+**Frontend unhealthy** → verifier `docker logs habileo-frontend`. Le healthcheck utilise `curl` (installe dans l'image).
 
-**Build frontend OOM / très lent** → augmenter la RAM allouée à Docker Desktop (≥ 4 Go recommandés pour Angular 20).
+**Le frontend ne joint pas le backend** :
+
+- Depuis le navigateur : utiliser `http://localhost:8080/api/...` (nginx proxy)
+- Depuis un conteneur : utiliser `http://backend:5000/api/...`
+
+**Build frontend OOM / tres lent** → augmenter la RAM allouee a Docker (>= 4 Go recommandes pour Angular 20).
 
 **Changements non pris en compte** → `docker compose up --build` (force un rebuild des images).
 
 **Cache npm corrompu** → `docker compose build --no-cache frontend`.
+
+**Image pousse meme apres modif** → verifie avec `docker images` que le digest a change. Si non, la modif n'est pas dans l'image → rebuild.
 
 ---
 
@@ -216,4 +301,6 @@ docker compose up frontend
 - [Docker docs](https://docs.docker.com/)
 - [Compose spec](https://docs.docker.com/compose/compose-file/)
 - [Gunicorn](https://docs.gunicorn.org/)
-- [nginx SPA config](https://router.vuejs.org/guide/essentials/history-mode.html#Example-Server-Configurations)
+- [nginx reverse proxy](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/)
+- [Habileo backend README](./backend/README.md)
+- [Habileo frontend README](./front/README.md)
