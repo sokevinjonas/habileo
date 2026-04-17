@@ -38,6 +38,7 @@
           <p class="upload-hint text-muted">Uploadez une photo en pied bien nette pour de meilleurs resultats</p>
         </ng-template>
       </div>
+      <p *ngIf="errorField === 'user'" class="error-text animate-fade-up">{{ errorMessage }}</p>
 
       <!-- Clothing Image -->
       <div
@@ -70,6 +71,7 @@
         </ng-template>
       </div>
     </div>
+    <p *ngIf="errorField === 'cloth'" class="error-text animate-fade-up">{{ errorMessage }}</p>
 
     <!-- Clothing Zone Select -->
     <div class="zone-select animate-fade-up" style="animation-delay: 0.25s">
@@ -85,6 +87,8 @@
         <ion-select-option value="tout">Tout — le corps entier</ion-select-option>
       </ion-select>
     </div>
+
+    <p *ngIf="errorField === 'zone'" class="error-text animate-fade-up">{{ errorMessage }}</p>
 
     <!-- Generate Button -->
     <div class="generate-wrap animate-fade-up" style="animation-delay: 0.3s">

@@ -122,6 +122,16 @@
   margin-top: 32px;
 }
 
+.error-text {
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #d93025;
+  background: rgba(217, 48, 37, 0.08);
+  border-radius: 12px;
+  border-left: 3px solid #d93025;
+}
+
 .bottom-spacer {
   height: 80px;
 }

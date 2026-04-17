@@ -5,7 +5,7 @@ from app.config import Config
 REPLICATE_API_URL = "https://api.replicate.com/v1/predictions"
 
 
-def generate_tryon(user_url: str, cloth_url: str, zone: str = "upper_body") -> dict:
+def generate_tryon(user_url: str, cloth_url: str, zone: str = "upper_body", garment_desc: str = "garment") -> dict:
     if not Config.REPLICATE_API_TOKEN:
         return {"error": "REPLICATE_API_TOKEN manquant"}
     if not Config.REPLICATE_MODEL_VERSION:
@@ -23,9 +23,11 @@ def generate_tryon(user_url: str, cloth_url: str, zone: str = "upper_body") -> d
                 "input": {
                     "human_img": user_url,
                     "garm_img": cloth_url,
-                    "garment_des": "clothing item",
+                    "garment_des": garment_desc,
                     "category": zone,
                     "crop": True,
+                    "steps": 40,
+                    "seed": 0,
                 },
             },
             timeout=30,

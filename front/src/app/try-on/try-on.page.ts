@@ -2,7 +2,7 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonSelect, IonSelectOption } from '@ionic/angular/standalone';
+import { IonContent, IonSelect, IonSelectOption, AlertController } from '@ionic/angular/standalone';
 import { LoadingOverlayComponent } from '../components/loading-overlay/loading-overlay.component';
 import { TryOnService } from '../services/tryon.service';
 
@@ -24,6 +24,8 @@ export class TryOnPage {
   clothingPhoto: string | null = null;
   clothingZone = '';
   loading = false;
+  errorMessage = '';
+  errorField = '';
 
   @ViewChild('userInput') userInput!: ElementRef<HTMLInputElement>;
   @ViewChild('clothingInput') clothingInput!: ElementRef<HTMLInputElement>;
@@ -31,12 +33,25 @@ export class TryOnPage {
   private userFile: File | null = null;
   private clothingFile: File | null = null;
 
-  constructor(private router: Router, private tryOnService: TryOnService) {}
+  constructor(
+    private router: Router,
+    private tryOnService: TryOnService,
+    private alertCtrl: AlertController,
+  ) {}
 
   onFileSelected(target: 'user' | 'clothing', event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+
+    // Clear previous error for this field
+    if (
+      (target === 'user' && this.errorField === 'user') ||
+      (target === 'clothing' && this.errorField === 'cloth')
+    ) {
+      this.errorMessage = '';
+      this.errorField = '';
+    }
 
     if (target === 'user') {
       this.userFile = file;
@@ -72,11 +87,22 @@ export class TryOnPage {
 
   async generate(): Promise<void> {
     if (!this.canGenerate || !this.userFile || !this.clothingFile) return;
+
+    this.errorMessage = '';
+    this.errorField = '';
     this.loading = true;
 
     try {
       const result = await this.tryOnService.generate(this.userFile, this.clothingFile, this.clothingZone);
       this.loading = false;
+
+      if (result.error) {
+        this.errorMessage = result.error;
+        this.errorField = result.field || '';
+        await this.showError(result.error);
+        return;
+      }
+
       if (result.image) {
         this.router.navigate(['/tabs/result'], {
           queryParams: {
@@ -85,8 +111,21 @@ export class TryOnPage {
           },
         });
       }
-    } catch {
+    } catch (e: any) {
       this.loading = false;
+      const msg = e?.message || 'Erreur de connexion au serveur';
+      this.errorMessage = msg;
+      await this.showError(msg);
     }
+  }
+
+  private async showError(message: string): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'Erreur',
+      message,
+      buttons: ['Compris'],
+      cssClass: 'habileo-alert',
+    });
+    await alert.present();
   }
 }

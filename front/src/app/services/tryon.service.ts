@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 
-interface TryOnResult {
+export interface TryOnResult {
   image?: string;
   error?: string;
+  field?: string;
 }
 
 @Injectable({ providedIn: 'root' })
