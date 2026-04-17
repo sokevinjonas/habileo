@@ -1,5 +1,7 @@
 <ion-content [fullscreen]="true" [scrollY]="true">
-  <app-loading-overlay *ngIf="loading" />
+  @if (loading) {
+    <app-loading-overlay />
+  }
 
   <div class="page-container">
     <!-- Header -->
@@ -13,21 +15,20 @@
       <!-- User Photo -->
       <div
         class="card-upload animate-fade-up"
+        [class.card-upload-error]="errorField === 'user'"
         style="animation-delay: 0.1s"
         (click)="userInput.click()"
       >
         <input #userInput type="file" accept="image/*" hidden (change)="onFileSelected('user', $event)" />
 
-        <ng-container *ngIf="userPhoto; else userPlaceholder">
+        @if (userPhoto) {
           <div class="upload-preview">
             <img [src]="userPhoto" alt="Votre photo" />
             <div class="upload-preview-overlay">
               <span class="preview-badge">Appuyez pour changer</span>
             </div>
           </div>
-        </ng-container>
-
-        <ng-template #userPlaceholder>
+        } @else {
           <div class="upload-icon upload-icon-primary">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -36,19 +37,22 @@
           </div>
           <p class="upload-title">Votre Photo</p>
           <p class="upload-hint text-muted">Uploadez une photo en pied bien nette pour de meilleurs resultats</p>
-        </ng-template>
+        }
       </div>
-      <p *ngIf="errorField === 'user'" class="error-text animate-fade-up">{{ errorMessage }}</p>
+      @if (errorField === 'user') {
+        <p class="error-text animate-fade-up">{{ errorMessage }}</p>
+      }
 
       <!-- Clothing Image -->
       <div
         class="card-upload animate-fade-up"
+        [class.card-upload-error]="errorField === 'cloth'"
         style="animation-delay: 0.2s"
         (click)="!clothingPhoto && clothingInput.click()"
       >
         <input #clothingInput type="file" accept="image/*" hidden (change)="onFileSelected('clothing', $event)" />
 
-        <ng-container *ngIf="clothingPhoto; else clothingPlaceholder">
+        @if (clothingPhoto) {
           <div class="upload-preview">
             <img [src]="clothingPhoto" alt="Vetement" />
             <div class="upload-preview-overlay">
@@ -56,9 +60,7 @@
               <button class="preview-badge preview-badge-danger" (click)="removeClothing($event)">Supprimer</button>
             </div>
           </div>
-        </ng-container>
-
-        <ng-template #clothingPlaceholder>
+        } @else {
           <div class="upload-icon upload-icon-accent">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -68,10 +70,12 @@
           </div>
           <p class="upload-title">Image du Vetement</p>
           <p class="upload-hint text-muted">N'importe quelle image de tenue — photo ou capture d'ecran</p>
-        </ng-template>
+        }
       </div>
     </div>
-    <p *ngIf="errorField === 'cloth'" class="error-text animate-fade-up">{{ errorMessage }}</p>
+    @if (errorField === 'cloth') {
+      <p class="error-text animate-fade-up">{{ errorMessage }}</p>
+    }
 
     <!-- Clothing Zone Select -->
     <div class="zone-select animate-fade-up" style="animation-delay: 0.25s">
@@ -88,7 +92,9 @@
       </ion-select>
     </div>
 
-    <p *ngIf="errorField === 'zone'" class="error-text animate-fade-up">{{ errorMessage }}</p>
+    @if (errorField === 'zone') {
+      <p class="error-text animate-fade-up">{{ errorMessage }}</p>
+    }
 
     <!-- Generate Button -->
     <div class="generate-wrap animate-fade-up" style="animation-delay: 0.3s">

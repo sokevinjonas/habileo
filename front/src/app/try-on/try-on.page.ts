@@ -1,6 +1,5 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonSelect, IonSelectOption, AlertController } from '@ionic/angular/standalone';
 import { LoadingOverlayComponent } from '../components/loading-overlay/loading-overlay.component';
@@ -11,7 +10,6 @@ import { TryOnService } from '../services/tryon.service';
   templateUrl: './try-on.page.html',
   styleUrls: ['./try-on.page.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonSelect,

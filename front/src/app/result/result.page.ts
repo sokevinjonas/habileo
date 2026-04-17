@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IonContent, IonModal } from '@ionic/angular/standalone';
 
@@ -7,7 +6,7 @@ import { IonContent, IonModal } from '@ionic/angular/standalone';
   selector: 'app-result',
   templateUrl: './result.page.html',
   styleUrls: ['./result.page.scss'],
-  imports: [CommonModule, IonContent, IonModal, RouterLink],
+  imports: [IonContent, IonModal, RouterLink],
 })
 export class ResultPage implements OnInit {
   sliderPos = 50;
