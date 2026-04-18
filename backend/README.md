@@ -10,6 +10,7 @@ Backend Flask pour la plateforme d'essayage virtuel Habileo. Gere l'upload d'ima
 - **Validation format** (Pillow) — extension, dimensions, orientation
 - **Validation contenu** (moondream2 VLM) — detecte si la photo est bien une personne / un vetement
 - **Pipeline try-on en 2 etapes** (remove-bg + IDM-VTON)
+- **Galerie par device_id** — sauvegarde des resultats dans Cloudinary, isolation par utilisateur
 - Retry automatique sur rate limits
 - Endpoint de healthcheck
 
@@ -34,11 +35,12 @@ backend/
 │   ├── __init__.py              # Factory Flask + CORS
 │   ├── config.py                # Variables d'env
 │   ├── routes/
-│   │   └── tryon.py             # POST /api/try-on, GET /api/health
+│   │   ├── tryon.py             # POST /api/try-on, GET /api/health
+│   │   └── gallery.py           # GET /api/gallery, DELETE /api/gallery/<id>
 │   ├── services/
 │   │   ├── replicate_service.py # Pipeline IA (remove-bg + IDM-VTON)
 │   │   ├── content_validator.py # Validation VLM via moondream2
-│   │   └── storage_service.py   # Upload Cloudinary
+│   │   └── storage_service.py   # Upload + galerie Cloudinary
 │   └── utils/
 │       └── helpers.py           # Validation format/taille (Pillow)
 ├── run.py                       # Entree WSGI
@@ -107,19 +109,27 @@ Generation d'un essayage virtuel.
 
 **Body** (multipart/form-data) :
 
-| Champ          | Type   | Requis | Description                              |
-| -------------- | ------ | ------ | ---------------------------------------- |
-| `user`         | file   | oui    | Photo de la personne (min 300x400, portrait) |
-| `cloth`        | file   | oui    | Photo du vetement (min 200x200)          |
-| `zone`         | string | oui    | `haut` \| `bas` \| `tout`                |
-| `garment_desc` | string | non    | Description texte du vetement            |
+| Champ          | Type   | Requis | Description                                           |
+| -------------- | ------ | ------ | ----------------------------------------------------- |
+| `user`         | file   | oui    | Photo de la personne (min 300x400, portrait)          |
+| `cloth`        | file   | oui    | Photo du vetement (min 200x200)                       |
+| `zone`         | string | oui    | `haut` \| `bas` \| `tout`                             |
+| `garment_desc` | string | non    | Description texte du vetement                         |
+| `device_id`    | string | non    | ID unique de l'appareil → sauvegarde dans la galerie  |
+
+Si `device_id` est fourni, le resultat final est re-uploade dans `habileo/users/{device_id}/` (Cloudinary) et la reponse contient aussi `id` (public_id Cloudinary) pour suppression future.
 
 **Reponse 200 OK :**
+
 ```json
-{ "image": "https://replicate.delivery/.../output.jpg" }
+{
+  "image": "https://res.cloudinary.com/.../habileo/users/abc-123/xyz123.jpg",
+  "id": "habileo/users/abc-123/xyz123"
+}
 ```
 
 **Reponse 400 (validation) :**
+
 ```json
 {
   "error": "La photo doit etre en portrait (verticale).",
@@ -128,9 +138,46 @@ Generation d'un essayage virtuel.
 ```
 
 **Reponse 502 (erreur pipeline) :**
+
 ```json
 { "error": "Essayage virtuel: generation failed" }
 ```
+
+### `GET /api/gallery?device_id=xxx`
+
+Liste les looks sauvegardes pour un device_id.
+
+**Parametres query** :
+
+| Parametre   | Requis | Description               |
+| ----------- | ------ | ------------------------- |
+| `device_id` | oui    | ID unique de l'appareil   |
+
+**Reponse 200 OK :**
+
+```json
+{
+  "items": [
+    {
+      "id": "habileo/users/abc-123/xyz123",
+      "url": "https://res.cloudinary.com/.../xyz123.jpg",
+      "date": "2026-04-18T14:32:00Z",
+      "label": "chemise col mao grise"
+    }
+  ],
+  "count": 1
+}
+```
+
+**Reponse 400 :** `{"error": "device_id requis"}`
+
+### `DELETE /api/gallery/<public_id>?device_id=xxx`
+
+Supprime un look de la galerie. Le `public_id` doit appartenir au `device_id` fourni (securite cote backend).
+
+**Reponse 200 OK :** `{"ok": true}`
+
+**Reponse 404 :** `{"error": "Image introuvable ou accès refusé"}`
 
 ---
 
@@ -188,6 +235,35 @@ Applique le vetement nettoye sur la photo utilisateur.
 - **Step 1 echoue :** pipeline continue avec l'image originale
 - **Timeout pipeline :** 180s par defaut (configurable via `REPLICATE_TIMEOUT`)
 - **moondream2 indisponible :** validation contenu est skipped, format + pipeline continuent
+- **Sauvegarde galerie echoue :** try-on renvoie quand meme l'URL Replicate (pas de blocage)
+
+---
+
+## 🖼️ Galerie (stockage par device_id)
+
+### Organisation Cloudinary
+
+```text
+Cloudinary/
+└── habileo/
+    ├── temp/                          # uploads temporaires (user + cloth)
+    └── users/
+        ├── {device_id_A}/
+        │   ├── xyz123.jpg             # resultat d'un try-on
+        │   └── abc456.jpg
+        └── {device_id_B}/
+            └── ...
+```
+
+### Securite
+
+- Le `device_id` est **sanitize** avant usage (`[^a-zA-Z0-9_-]` strippe, max 64 chars)
+- `delete_gallery_item` verifie que le `public_id` commence par `habileo/users/{device_id}/` avant de supprimer (pas de cross-user)
+- Endpoint `GET /api/gallery` **exige** un `device_id` non vide
+
+### Listing
+
+`cloudinary.api.resources(type='upload', prefix='habileo/users/{device_id}/')` — max 50 resultats, tries par date decroissante.
 
 ---
 
@@ -214,3 +290,14 @@ Applique le vetement nettoye sur la photo utilisateur.
 | `La photo doit etre en portrait`                | Photo utilisateur en paysage            |
 | `L'image ne semble pas contenir une personne`   | Photo non-humaine detectee par VLM      |
 | Upload Cloudinary echoue                        | `CLOUDINARY_URL` mal configure          |
+| Galerie vide malgre plusieurs try-on            | `device_id` non envoye par le frontend  |
+| `device_id requis`                              | Parametre manquant sur `/api/gallery`   |
+
+---
+
+## 📚 Docs liees
+
+- [README principal](../README.md) — vue d'ensemble du projet
+- [Frontend README](../front/README.md) — app Ionic + Angular
+- [DOCKER.md](../DOCKER.md) — infra Docker
+- [ADMOB.md](../ADMOB.md) — architecture monetisation

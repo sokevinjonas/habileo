@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
+import { AdService } from '../services/ad.service';
 
 @Component({
   selector: 'app-home',
@@ -9,6 +10,8 @@ import { IonContent } from '@ionic/angular/standalone';
   imports: [IonContent, RouterLink],
 })
 export class HomePage {
+  constructor(private ads: AdService) {}
+
   steps = [
     { num: '1', title: 'Uploadez votre photo', desc: 'Une photo en pied bien nette donne les meilleurs resultats' },
     { num: '2', title: 'Choisissez une tenue', desc: "Uploadez n'importe quelle image de vetement" },
@@ -20,4 +23,12 @@ export class HomePage {
     { image: 'assets/fashion-african-2.jpg', label: 'Boubou Royal', style: 'Agbada Indigo' },
     { image: 'assets/fashion-african-3.jpg', label: 'Kaba Dore', style: 'Kaba Brode' },
   ];
+
+  async ionViewDidEnter(): Promise<void> {
+    await this.ads.showBanner();
+  }
+
+  async ionViewWillLeave(): Promise<void> {
+    await this.ads.hideBanner();
+  }
 }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent, IonSelect, IonSelectOption, AlertController } from '@ionic/angular/standalone';
 import { LoadingOverlayComponent } from '../components/loading-overlay/loading-overlay.component';
 import { TryOnService } from '../services/tryon.service';
+import { AdService } from '../services/ad.service';
 
 @Component({
   selector: 'app-try-on',
@@ -36,6 +37,7 @@ export class TryOnPage {
     private router: Router,
     private tryOnService: TryOnService,
     private alertCtrl: AlertController,
+    private ads: AdService,
   ) {}
 
   onFileSelected(target: 'user' | 'clothing', event: Event): void {
@@ -103,6 +105,9 @@ export class TryOnPage {
       }
 
       if (result.image) {
+        // Interstitial juste avant d'afficher le resultat (moment naturel)
+        await this.ads.showInterstitial();
+
         this.router.navigate(['/tabs/result'], {
           queryParams: {
             before: this.userPhoto,

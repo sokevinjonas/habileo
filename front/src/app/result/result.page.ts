@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IonContent, IonModal } from '@ionic/angular/standalone';
+import { PremiumService } from '../services/premium.service';
+import { AdService } from '../services/ad.service';
 
 @Component({
   selector: 'app-result',
@@ -17,7 +19,13 @@ export class ResultPage implements OnInit {
   beforeImage = 'assets/fashion-african-1.jpg';
   afterImage = 'assets/fashion-african-3.jpg';
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(
+    private route: ActivatedRoute,
+    private premium: PremiumService,
+    private ads: AdService,
+  ) {
+    this.isPremium = this.premium.isPremium;
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
@@ -41,9 +49,12 @@ export class ResultPage implements OnInit {
     }
   }
 
-  activatePremium(): void {
+  async activatePremium(): Promise<void> {
+    // TODO: integrer le paiement (CinetPay / PayDunya)
+    this.premium.activate();
     this.isPremium = true;
     this.showPremium = false;
+    await this.ads.onPremiumActivated();
   }
 
   toggleSave(): void {

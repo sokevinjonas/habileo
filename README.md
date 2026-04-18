@@ -47,8 +47,9 @@ Inspiré des besoins du marché africain (mode wax, boubou, kaba), Habileo perme
 
 ```
 habileo/
-├── README.md                 # Ce fichier
+├── README.md                 # Ce fichier — vue d'ensemble
 ├── DOCKER.md                 # Documentation Docker complete
+├── ADMOB.md                  # Architecture integration AdMob
 ├── docker-compose.yml        # Orchestration prod
 ├── docker-compose.dev.yml    # Orchestration dev (hot-reload)
 ├── .gitignore
@@ -61,38 +62,44 @@ habileo/
 │   ├── requirements.txt
 │   ├── run.py
 │   └── app/
-│       ├── __init__.py       # Factory Flask
-│       ├── config.py         # Variables d'env
+│       ├── __init__.py       # Factory Flask (blueprints tryon + gallery)
+│       ├── config.py
 │       ├── routes/
-│       │   └── tryon.py      # POST /api/try-on, GET /api/health
+│       │   ├── tryon.py      # POST /api/try-on, GET /api/health
+│       │   └── gallery.py    # GET/DELETE /api/gallery
 │       ├── services/
 │       │   ├── replicate_service.py    # Pipeline IA (2 etapes)
-│       │   ├── content_validator.py    # Validation VLM
-│       │   └── storage_service.py      # Upload Cloudinary
+│       │   ├── content_validator.py    # Validation VLM (moondream2)
+│       │   └── storage_service.py      # Upload + galerie Cloudinary
 │       └── utils/
-│           └── helpers.py    # Validation format/taille
+│           └── helpers.py    # Validation format/taille (Pillow)
 │
 └── front/                    # App Ionic + Angular
     ├── README.md
     ├── Dockerfile            # Multi-stage build → nginx
     ├── Dockerfile.dev        # Hot-reload ng serve
     ├── nginx.conf            # Reverse proxy /api + SPA fallback
+    ├── capacitor.config.ts   # App ID AdMob + appId Habileo
     ├── angular.json
     ├── package.json
     └── src/
         ├── theme/variables.scss      # Palette violet/dore
         ├── global.scss               # Animations, cards, buttons
-        ├── environments/
+        ├── environments/             # IDs AdMob + URL API
         └── app/
             ├── tabs/                 # Bottom tab bar
-            ├── home/                 # Page Accueil
-            ├── try-on/               # Page Essayage
-            ├── result/               # Page Resultat
-            ├── gallery/              # Page Galerie
+            ├── home/                 # Page Accueil (+ banner)
+            ├── try-on/               # Page Essayage (+ interstitial)
+            ├── result/               # Page Resultat (+ activation premium)
+            ├── gallery/              # Page Galerie (+ banner)
             ├── components/
             │   └── loading-overlay/
             └── services/
-                └── tryon.service.ts
+                ├── tryon.service.ts    # POST /api/try-on
+                ├── gallery.service.ts  # GET /api/gallery
+                ├── device.service.ts   # Device ID unique
+                ├── premium.service.ts  # Statut premium (localStorage)
+                └── ad.service.ts       # Wrapper AdMob
 ```
 
 ---
@@ -197,13 +204,56 @@ Multipart form-data :
 ```
 
 **Exemple cURL :**
+
 ```bash
 curl -X POST http://localhost:5000/api/try-on \
   -F "user=@moi.jpg" \
   -F "cloth=@tshirt.png" \
   -F "zone=haut" \
-  -F "garment_desc=chemise col mao grise"
+  -F "garment_desc=chemise col mao grise" \
+  -F "device_id=abc-123"
 ```
+
+### `GET /api/gallery?device_id=xxx`
+
+Liste tous les looks sauvegardes pour un device_id.
+
+**Reponse :**
+
+```json
+{
+  "items": [
+    { "id": "habileo/users/abc-123/...", "url": "https://...", "date": "2026-04-18T...", "label": "chemise grise" }
+  ],
+  "count": 1
+}
+```
+
+### `DELETE /api/gallery/<public_id>?device_id=xxx`
+
+Supprime un look de la galerie de l'utilisateur.
+
+---
+
+## 💰 Modele economique
+
+**Freemium + premium one-time 1 000 FCFA :**
+
+| | Gratuit | Premium (1 000 FCFA) |
+| --- | --- | --- |
+| Generations try-on | Illimitees | Illimitees |
+| Galerie | Acces | Acces |
+| Publicites (banners + interstitials) | Oui | **Non** |
+| Telechargement HD | Non | Oui |
+| Partage social | Non | Oui |
+
+**Integration AdMob** (Android/iOS) :
+
+- Banner adaptatif sur Accueil + Galerie
+- Interstitial 1x/session apres une generation
+- Skip automatique sur le web + si premium
+
+Voir **[ADMOB.md](./ADMOB.md)** pour l'architecture complete.
 
 ---
 
@@ -220,6 +270,8 @@ curl -X POST http://localhost:5000/api/try-on \
 - Capacitor 8 (prete pour iOS/Android)
 - TypeScript 5.9, SCSS
 - nginx (production, reverse proxy)
+- `@capacitor/device` — Device ID unique par appareil
+- `@capacitor-community/admob` — banners + interstitials
 
 **Infra**
 - Docker multi-stage builds
@@ -241,14 +293,17 @@ curl -X POST http://localhost:5000/api/try-on \
 - Selection zone (haut / bas / tout le corps)
 - Description optionnelle du vetement
 - Slider avant/apres interactif
-- Modal Premium (1 000 FCFA pour debloquer telechargement/partage)
-- Galerie des looks sauvegardes
+- Modal Premium (1 000 FCFA pour supprimer les pubs et debloquer telechargement/partage)
+- **Galerie personnelle** (Cloudinary, identifiee par device_id)
+- Pull-to-refresh, etats offline / vide / erreur geres
 
 **Technique**
+- **Device ID unique** genere a l'install (Capacitor Device ou UUID localStorage)
 - Validation multi-niveaux (format + IA)
 - Pipeline resilient (fallback si remove-bg echoue)
 - Retry automatique sur rate limit 429
 - Messages d'erreur clairs en francais
+- **Monetisation AdMob** (banners + interstitials, skip si premium)
 - Healthchecks actifs
 - Mode dev avec hot-reload
 
@@ -262,9 +317,10 @@ Voir **[DOCKER.md](./DOCKER.md)** pour la documentation complete (Dockerfiles, c
 
 ## 📚 Documentation detaillee
 
-- [Backend README](./backend/README.md) — API Flask, pipeline IA, configuration
-- [Frontend README](./front/README.md) — Pages, composants, theme
+- [Backend README](./backend/README.md) — API Flask, pipeline IA, galerie Cloudinary
+- [Frontend README](./front/README.md) — Pages, composants, services, theme
 - [Docker guide](./DOCKER.md) — Images, compose, dev vs prod
+- [AdMob architecture](./ADMOB.md) — Integration des pubs + modele premium
 
 ---
 

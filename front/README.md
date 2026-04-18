@@ -12,8 +12,10 @@ Application mobile-first d'essayage virtuel propulsee par l'IA, construite avec 
 - Description optionnelle du vetement pour guider l'IA 📝
 - Loading overlay avec etapes du pipeline en temps reel ⏳
 - Slider avant/apres interactif 🎞️
-- Modal Premium (1 000 FCFA) 💎
-- Galerie des looks sauvegardes 🖼️
+- **Galerie personnelle** stockee sur Cloudinary, identifiee par device_id 🖼️
+- Gestion des etats offline / vide / erreur avec pull-to-refresh 🔄
+- Modal Premium (1 000 FCFA one-time) 💎
+- **Monetisation AdMob** (banners + interstitials, skip si premium) 📢
 - Messages d'erreur clairs si upload invalide ⚠️
 
 ---
@@ -22,10 +24,15 @@ Application mobile-first d'essayage virtuel propulsee par l'IA, construite avec 
 
 - Ionic 8 ⚡
 - Angular 20 (standalone components) 🅰️
-- Capacitor 8 (iOS/Android) 📱
+- Capacitor 8 📱
 - TypeScript 5.9 📘
 - SCSS + animations CSS 🎨
 - nginx en production (reverse proxy + SPA fallback) 🐳
+
+**Plugins Capacitor** :
+
+- `@capacitor/device` — Device ID unique
+- `@capacitor-community/admob` — Monetisation (banners + interstitials)
 
 ---
 
@@ -40,37 +47,26 @@ front/
 │   ├── theme/
 │   │   └── variables.scss          # Palette violet/dore Habileo
 │   ├── environments/
-│   │   ├── environment.ts          # apiUrl local
-│   │   └── environment.prod.ts     # apiUrl prod (relatif, via nginx proxy)
+│   │   ├── environment.ts          # apiUrl + IDs AdMob de TEST (dev)
+│   │   └── environment.prod.ts     # apiUrl relatif + vrais IDs AdMob (prod)
 │   └── app/
-│       ├── app.component.ts        # Racine IonApp
+│       ├── app.component.ts        # Racine + init AdMob
 │       ├── app.routes.ts
-│       ├── tabs/                   # Bottom tab bar
-│       │   ├── tabs.page.ts
-│       │   ├── tabs.page.html      # 3 onglets (Accueil, Essayer, Galerie)
-│       │   └── tabs.routes.ts
-│       ├── home/                   # Page Accueil
-│       │   ├── home.page.ts
-│       │   ├── home.page.html      # Hero + steps + carousel transformations
-│       │   └── home.page.scss
-│       ├── try-on/                 # Page Essayage
-│       │   ├── try-on.page.ts
-│       │   ├── try-on.page.html    # 2 uploads + select zone + description
-│       │   └── try-on.page.scss
-│       ├── result/                 # Page Resultat
-│       │   ├── result.page.ts
-│       │   ├── result.page.html    # Slider avant/apres + actions + modal premium
-│       │   └── result.page.scss
-│       ├── gallery/                # Page Galerie
-│       │   ├── gallery.page.ts
-│       │   ├── gallery.page.html   # Grille 2 colonnes
-│       │   └── gallery.page.scss
+│       ├── tabs/                   # Bottom tab bar (3 onglets)
+│       ├── home/                   # Accueil (+ banner AdMob)
+│       ├── try-on/                 # Essayage (+ interstitial apres generation)
+│       ├── result/                 # Resultat (+ activation premium)
+│       ├── gallery/                # Galerie (+ banner AdMob)
 │       ├── components/
-│       │   └── loading-overlay/    # Orbe lumineux + progression pipeline
+│       │   └── loading-overlay/    # Orbe + messages par etapes pipeline
 │       └── services/
-│           └── tryon.service.ts    # Appel POST /api/try-on
+│           ├── tryon.service.ts    # POST /api/try-on
+│           ├── gallery.service.ts  # GET/DELETE /api/gallery
+│           ├── device.service.ts   # Device ID (Capacitor ou UUID)
+│           ├── premium.service.ts  # Statut premium (localStorage)
+│           └── ad.service.ts       # Wrapper AdMob
 ├── angular.json
-├── capacitor.config.ts
+├── capacitor.config.ts             # appId + App ID AdMob
 ├── ionic.config.json
 ├── package.json
 ├── Dockerfile                      # Multi-stage : Node build → nginx serve
@@ -78,6 +74,77 @@ front/
 ├── nginx.conf                      # Proxy /api + SPA fallback
 └── .dockerignore
 ```
+
+---
+
+## 🆔 Device ID (pas de login)
+
+Pour eviter toute friction de sign-up, Habileo identifie chaque utilisateur par un **device_id unique** genere a l'installation.
+
+**Strategie** ([device.service.ts](src/app/services/device.service.ts)) :
+
+1. **Mobile natif** → `Capacitor.Device.getId()` (stable sur iOS/Android)
+2. **Web** → UUID genere via `crypto.randomUUID()` et stocke dans `localStorage`
+3. Mise en cache en memoire pour eviter de relire le storage a chaque appel
+
+Le device_id est envoye dans chaque requete `/api/try-on` et `/api/gallery`. Cote backend, il sert a isoler les galeries dans Cloudinary (`habileo/users/{device_id}/`).
+
+**Limitation connue :** si l'user reinstalle l'app / change de telephone, il perd sa galerie. Un **code de recuperation** sera ajoute lors du paiement premium pour permettre la restauration.
+
+---
+
+## 🖼️ Galerie
+
+La page [gallery.page.ts](src/app/gallery/gallery.page.ts) gere **5 etats** :
+
+| Etat       | Affichage                                            |
+| ---------- | ---------------------------------------------------- |
+| `loading`  | Spinner                                              |
+| `offline`  | Icone offline + message "Connexion requise"          |
+| `error`    | Message d'erreur + bouton Reessayer                  |
+| `empty`    | Icone + CTA "Creer un look"                          |
+| `ready`    | Grille 2 colonnes des looks                          |
+
+- **Pull-to-refresh** (`ion-refresher`) pour recharger manuellement
+- **Refresh automatique** quand on revient sur la page (`ionViewWillEnter`)
+- Chaque tuile clique envoie vers `/tabs/result` avec `queryParams: { after: url }` pour reafficher
+
+Les looks sont persistes cote backend dans Cloudinary au format `habileo/users/{device_id}/{id}.jpg`.
+
+---
+
+## 📢 Monetisation AdMob
+
+**Strategie :** freemium avec pubs + premium one-time 1 000 FCFA pour les enlever.
+
+**Placements :**
+
+- **Banner adaptatif** (bas d'ecran) sur Accueil + Galerie
+- **Interstitial** 1x max par session, apres une generation try-on reussie
+
+**Architecture** (voir [ADMOB.md](../ADMOB.md) pour les details) :
+
+```text
+AppComponent.ngOnInit()
+    └ AdService.init()  ← initialise AdMob une fois au demarrage
+
+Home/Gallery pages
+    ├ ionViewDidEnter → showBanner()
+    └ ionViewWillLeave → hideBanner()
+
+Try-on page
+    └ generate() success → showInterstitial() → navigate result
+
+Premium activation (result page modal)
+    ├ PremiumService.activate()
+    └ AdService.onPremiumActivated() → removeBanner()
+```
+
+**Securite :**
+
+- `canRun()` skip automatiquement sur web (AdMob natif uniquement)
+- `canRun()` skip si `premium.isPremium` = true
+- IDs de **test Google** en dev (`environment.ts`), vrais IDs en prod (`environment.prod.ts`)
 
 ---
 
@@ -133,6 +200,12 @@ front/
 - Dev local : `environment.ts` → `apiUrl: 'http://localhost:5000'`
 - Production : `environment.prod.ts` → `apiUrl: ''` (relatif, passe par nginx `/api`)
 
+**IDs AdMob :**
+
+- Dev : IDs de TEST universels Google (no-risk, pubs factices)
+- Prod : tes vrais IDs dans `environment.prod.ts`
+- App ID AdMob dans [capacitor.config.ts](capacitor.config.ts)
+
 **Tailles limites d'upload** : appliquees cote backend (voir [backend README](../backend/README.md)). Le front ne fait pas de validation stricte — il laisse le backend repondre.
 
 ---
@@ -146,6 +219,8 @@ npx ng serve
 ```
 
 Ouvre `http://localhost:4200`. L'API doit tourner sur `http://localhost:5000`.
+
+**Note :** sur web, les pubs AdMob ne s'affichent pas (skip auto). Pour les tester il faut builder l'app Android/iOS.
 
 ---
 
@@ -173,34 +248,49 @@ Voir [DOCKER.md](../DOCKER.md) pour les details.
 
 ## 📱 Mobile (Capacitor)
 
-Le projet integre Capacitor 8. Pour build les apps natives :
+Le projet integre Capacitor 8 et les plugins `@capacitor/device` + `@capacitor-community/admob`.
+
+**appId** : `com.habileo.app` (defini dans `capacitor.config.ts`).
+
+### Build Android
 
 ```bash
-# Android
-npx ng build --configuration=production
+npm run build
 npx cap add android
-npx cap sync android
-npx cap open android
+npx cap sync android        # synchronise le web build + plugins
+npx cap open android        # ouvre Android Studio
+```
 
-# iOS (macOS uniquement)
+### Build iOS (macOS uniquement)
+
+```bash
 npx cap add ios
 npx cap sync ios
 npx cap open ios
 ```
 
-**appId** : `io.ionic.starter` (a changer dans `capacitor.config.ts` avant publication).
+### Tester AdMob sur emulateur
+
+Lance l'app sur un emulateur Android. Tu verras :
+
+- **Banners** sur Accueil + Galerie (pub test "Test Ad")
+- **Interstitial** apres ton 1er try-on (plein ecran, pub factice)
+
+En dev, les **IDs de test Google** sont utilises automatiquement — aucun risque de ban.
 
 ---
 
 ## 🔄 Integration backend
 
-Le service [`TryOnService`](src/app/services/tryon.service.ts) gere l'appel :
+Deux services HTTP :
 
-```typescript
-generate(userFile, clothFile, zone, garmentDesc): Promise<TryOnResult>
-```
+### `TryOnService.generate(userFile, clothFile, zone, garmentDesc)`
 
-Envoie un `multipart/form-data` vers `POST /api/try-on`.
+Envoie un `multipart/form-data` vers `POST /api/try-on`, inclut automatiquement le `device_id` via `DeviceService`.
+
+### `GalleryService.fetchGallery()` / `deleteItem(publicId)`
+
+Appelle `GET /api/gallery?device_id=xxx` et renvoie la liste des looks. Filtre par device_id automatiquement.
 
 **Gestion des erreurs** (voir [try-on.page.ts](src/app/try-on/try-on.page.ts)) :
 
@@ -219,3 +309,12 @@ Envoie un `multipart/form-data` vers `POST /api/try-on`.
 | `npm run watch`       | Build dev en mode watch                |
 | `npm test`            | Lance les tests Karma                  |
 | `npm run lint`        | ESLint + Angular lint                  |
+
+---
+
+## 📚 Docs liees
+
+- [README principal](../README.md) — vue d'ensemble du projet
+- [Backend README](../backend/README.md) — API + pipeline IA
+- [DOCKER.md](../DOCKER.md) — infra Docker
+- [ADMOB.md](../ADMOB.md) — architecture monetisation

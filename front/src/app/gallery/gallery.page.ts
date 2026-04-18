@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IonContent, IonRefresher, IonRefresherContent, IonSpinner } from '@ionic/angular/standalone';
 import { GalleryService, GalleryItem } from '../services/gallery.service';
+import { AdService } from '../services/ad.service';
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error' | 'offline' | 'empty';
 
@@ -16,7 +17,7 @@ export class GalleryPage implements OnInit {
   state: LoadState = 'idle';
   errorMessage = '';
 
-  constructor(private galleryService: GalleryService) {}
+  constructor(private galleryService: GalleryService, private ads: AdService) {}
 
   async ngOnInit(): Promise<void> {
     await this.load();
@@ -27,6 +28,14 @@ export class GalleryPage implements OnInit {
     if (this.state !== 'loading') {
       await this.load();
     }
+  }
+
+  async ionViewDidEnter(): Promise<void> {
+    await this.ads.showBanner();
+  }
+
+  async ionViewWillLeave(): Promise<void> {
+    await this.ads.hideBanner();
   }
 
   async load(): Promise<void> {
