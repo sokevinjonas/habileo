@@ -1,17 +1,36 @@
+# docker-compose.yml destine au VPS (production)
+# A copier dans /opt/habileo/ sur le VPS
+#
+# Difference avec docker-compose.yml (dev) :
+#   - Pas de build: utilise les images Docker Hub
+#   - Ports binds sur 127.0.0.1 uniquement (Caddy proxy devant)
+#   - Tag de version explicite (evite les surprises en prod)
+
 services:
   backend:
-    image: sokevinjonas/habileo-backend:latest
+    image: sokevinjonas/habileo-backend:v1.0.1
     container_name: habileo-backend
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     env_file:
-      - .env
+      - ./backend.env
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:5000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - habileo
+
+  frontend:
+    image: sokevinjonas/habileo-frontend:v1.0.1
+    container_name: habileo-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
     networks:
       - habileo
 

@@ -50,8 +50,12 @@ habileo/
 ├── README.md                 # Ce fichier — vue d'ensemble
 ├── DOCKER.md                 # Documentation Docker complete
 ├── ADMOB.md                  # Architecture integration AdMob
-├── docker-compose.yml        # Orchestration prod
+├── DEPLOY.md                 # Pipeline generique de deploiement en production
+├── VPS_SETUP.md              # Journal du deploiement VPS (specifique a notre prod)
+├── deploy.sh                 # Script build + push Docker Hub
+├── docker-compose.yml        # Orchestration dev local
 ├── docker-compose.dev.yml    # Orchestration dev (hot-reload)
+├── docker-compose.prod.yml   # Orchestration prod (VPS, images Docker Hub)
 ├── .gitignore
 │
 ├── backend/                  # API Flask
@@ -321,6 +325,8 @@ Voir **[DOCKER.md](./DOCKER.md)** pour la documentation complete (Dockerfiles, c
 - [Frontend README](./front/README.md) — Pages, composants, services, theme
 - [Docker guide](./DOCKER.md) — Images, compose, dev vs prod
 - [AdMob architecture](./ADMOB.md) — Integration des pubs + modele premium
+- [Deploy guide](./DEPLOY.md) — Pipeline generique de deploiement VPS
+- [VPS setup](./VPS_SETUP.md) — Journal concret du deploiement Habileo (api-habileo.couturart.app)
 
 ---
 
